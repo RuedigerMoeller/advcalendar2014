@@ -11,8 +11,8 @@ import java.util.HashMap;
  */
 public class OffHeapMapExample {
 
-    FSTAsciiStringOffheapMap<Person> memory;
-    HashMap<String,Person> hugeMap;
+    FSTAsciiStringOffheapMap<User> memory;
+    HashMap<String,User> hugeMap;
 
     public OffHeapMapExample() throws Exception {
         hugeMap = new HashMap<>(15_000_000);
@@ -23,19 +23,19 @@ public class OffHeapMapExample {
         // memory = new FSTAsciiStringOffheapMap<>(20, 4*FSTAsciiStringOffheapMap.GB, 500_000);
         try {
             memory = new FSTAsciiStringOffheapMap<>("/tmp/storeadvent.mmf", 20, 4*FSTAsciiStringOffheapMap.GB, 500_000);
-            memory.getCoder().getConf().registerClass(Person.class); // avoid writing full classnames
+            memory.getCoder().getConf().registerClass(User.class); // avoid writing full classnames
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void fifteenMillion() {
+    public void fifteenMillion(FSTAsciiStringOffheapMap<User> memory) {
         int size = memory.getSize();
         if ( size < 15_000_000 ) {
             for ( int i = 0; i < 15_000_000; i++ ) {
-                Person newPerson = new Person("u"+i, (i%1 == 0) ? "Adam "+i : "Eva "+i, "username"+i, System.currentTimeMillis() );
-                newPerson.addFriend("u"+(i-1)).addFriend("u"+(i+1));
-                memory.put( newPerson.getUid(), newPerson );
+                User newUser = new User("u"+i, (i%1 == 0) ? "Adam "+i : "Eva "+i, "username"+i, System.currentTimeMillis() );
+                newUser.addFriend("u"+(i-1)).addFriend("u"+(i+1));
+                memory.put(newUser.getUid(), newUser);
             }
             System.out.println(memory.getFreeMem());
         }
@@ -43,17 +43,17 @@ public class OffHeapMapExample {
 
     public void fifteenMillionOnHeap() {
         for ( int i = 0; i < 15_000_000; i++ ) {
-            Person newPerson = new Person("u"+i, (i%1 == 0) ? "Adam "+i : "Eva "+i, "username"+i, System.currentTimeMillis() );
-            newPerson.addFriend("u"+(i-1)).addFriend("u"+(i+1));
-            hugeMap.put( newPerson.getUid(), newPerson );
+            User newUser = new User("u"+i, (i%1 == 0) ? "Adam "+i : "Eva "+i, "username"+i, System.currentTimeMillis() );
+            newUser.addFriend("u"+(i-1)).addFriend("u"+(i+1));
+            hugeMap.put( newUser.getUid(), newUser);
         }
     }
 
     public void doSomeLookupsOnHeap() {
         for ( int i = 0; i < 10_000; i++ ) {
             String key = "u" + (int) (Math.random() * 10000);
-            Person person = memory.get(key);
-            if ( ! key.equals(person.getUid()) ) {
+            User user = memory.get(key);
+            if ( ! key.equals(user.getUid()) ) {
                 throw new RuntimeException("this is very bad");
             }
         }
@@ -62,8 +62,8 @@ public class OffHeapMapExample {
     public void doSomeLookups() {
         for ( int i = 0; i < 10_000; i++ ) {
             String key = "u" + (int) (Math.random() * 10000);
-            Person person = memory.get(key);
-            if ( ! key.equals(person.getUid()) ) {
+            User user = memory.get(key);
+            if ( ! key.equals(user.getUid()) ) {
                 throw new RuntimeException("this is very bad");
             }
         }
@@ -88,7 +88,7 @@ public class OffHeapMapExample {
         OffHeapMapExample ex = new OffHeapMapExample();
         ex.measureTime("create map offheap", ex::initMap);
 
-        ex.measureTime("fill map offheap", () -> ex.fifteenMillion());
+        ex.measureTime("fill map offheap", () -> ex.fifteenMillion(ex.memory));
 
         for ( int i = 0; i < 3; i++ ) {
             long dur = ex.measureTime("10_000 accesses", () -> ex.doSomeLookups());
@@ -106,7 +106,7 @@ public class OffHeapMapExample {
 
     }
 
-    public static class Person implements Serializable {
+    public static class User implements Serializable {
         String uid;
 
         String firstName;
@@ -115,7 +115,7 @@ public class OffHeapMapExample {
         long lastLogin;
         ArrayList<String> friends = new ArrayList<>();
 
-        public Person(String uid, String firstName, String name, long lastLogin) {
+        public User(String uid, String firstName, String name, long lastLogin) {
             this.uid = uid;
             this.firstName = firstName;
             this.name = name;
@@ -162,12 +162,12 @@ public class OffHeapMapExample {
             this.friends = friends;
         }
 
-        public Person addFriend( String s ) {
+        public User addFriend( String s ) {
             friends.add(s);
             return this;
         }
 
-        public Person addFriend( Person p ) {
+        public User addFriend( User p ) {
             friends.add(p.getUid());
             return this;
         }

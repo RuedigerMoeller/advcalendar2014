@@ -6,18 +6,26 @@ import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import keyvalue.OffHeapMapExample.*;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
  * Created by ruedi on 15.12.14.
  */
 public class KVServer extends Actor {
-    FSTAsciiStringOffheapMap<Person> memory;
+    FSTAsciiStringOffheapMap<User> memory;
 
     public Future $init() {
         try {
+            new File("/tmp").mkdirs(); // windows
             memory = new FSTAsciiStringOffheapMap<>("/tmp/storeadvent.mmf", 20, 4*FSTAsciiStringOffheapMap.GB, 500_000);
-            memory.getCoder().getConf().registerClass(Person.class); // avoid writing full classnames
+            memory.getCoder().getConf().registerClass(User.class); // avoid writing full classnames
+            if ( memory.getSize() == 0 ) {
+                // create sample data
+                System.out.println("generating sample 15 million records .. pls wait a minute");
+                OffHeapMapExample oh = new OffHeapMapExample(); oh.fifteenMillion(memory);
+                System.out.println(".. done");
+            }
             System.out.println("server intialized");
         } catch (Exception e) {
             return new Promise<>(null,e);
@@ -29,11 +37,11 @@ public class KVServer extends Actor {
         return new Promise<>( memory.get(uid) );
     }
 
-    public Future<Person> $put( String uid, OffHeapMapExample.Person value ) {
+    public Future<User> $put( String uid, User value ) {
         return new Promise<>( memory.get(uid) );
     }
 
-    public void iterateValues( Spore<Person,Person> spore ) {
+    public void iterateValues( Spore<User,Object> spore ) {
         memory.values().forEachRemaining( person -> spore.remote(person) );
         spore.finished();
     }
