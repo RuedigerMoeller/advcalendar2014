@@ -8,6 +8,10 @@ import java.util.HashMap;
 
 /**
  * Created by ruedi on 15.12.14.
+ *
+ * Run with -Xmx12g -Xms12g, else vm will not able to run the OnHeap regular HashMap test
+ *
+ *
  */
 public class OffHeapMapExample {
 
@@ -90,14 +94,14 @@ public class OffHeapMapExample {
 
         ex.measureTime("fill map offheap", () -> ex.fifteenMillion(ex.memory));
 
-        for ( int i = 0; i < 3; i++ ) {
+        for ( int i = 0; i < 20; i++ ) {
             long dur = ex.measureTime("10_000 accesses", () -> ex.doSomeLookups());
             System.out.println(10000/dur+" accesses per millisecond");
         }
         ex.measureGC();
 
         ex.measureTime( "create map ON heap", () -> ex.fifteenMillionOnHeap() );
-        for ( int i = 0; i < 3; i++ ) {
+        for ( int i = 0; i < 20; i++ ) {
             long dur = ex.measureTime("10_000 accesses", () -> ex.doSomeLookupsOnHeap());
             System.out.println(10000/dur+" accesses per millisecond");
         }
