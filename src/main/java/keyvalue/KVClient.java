@@ -1,8 +1,12 @@
 package keyvalue;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
+
+import static keyvalue.OffHeapMapExample.*;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -18,9 +22,32 @@ public class KVClient {
         Future<KVServer> connect = TCPActorClient.Connect(KVServer.class, "127.0.0.1", 7777)
             .onResult(server -> {
                 try {
+
+                    // filter some stuff remotely ...
+                    server.iterateValues(new Spore<User, Object>() {
+                        transient int count = 0;
+
+                        @Override
+                        public void remote(User input) {
+                            if (input.getUid().startsWith("u1")) {
+                                count++;
+                                if (count > 10) {
+                                    finished();
+                                } else {
+                                    receive(input, Callback.CONT);
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void local(Object result, Object error) {
+                            System.out.println("received:" + result);
+                        }
+                    });
+
                     while (true) {
-                        benchGet(server,true);
-                        benchGet(server,false);
+                        benchGet(server, true);
+                        benchGet(server, false);
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();

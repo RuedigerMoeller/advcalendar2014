@@ -41,8 +41,8 @@ public class OffHeapMapExample {
                 newUser.addFriend("u"+(i-1)).addFriend("u"+(i+1));
                 memory.put(newUser.getUid(), newUser);
             }
-            System.out.println(memory.getFreeMem());
         }
+        System.out.println(memory.getCapacityMB()-memory.getFreeMem()/1024/1024);
     }
 
     public void fifteenMillionOnHeap() {
@@ -54,9 +54,9 @@ public class OffHeapMapExample {
     }
 
     public void doSomeLookupsOnHeap() {
-        for ( int i = 0; i < 10_000; i++ ) {
-            String key = "u" + (int) (Math.random() * 10000);
-            User user = memory.get(key);
+        for ( int i = 0; i < 100_000; i++ ) {
+            String key = "u" + (int) (Math.random() * 100000);
+            User user = hugeMap.get(key);
             if ( ! key.equals(user.getUid()) ) {
                 throw new RuntimeException("this is very bad");
             }
@@ -64,8 +64,8 @@ public class OffHeapMapExample {
     }
 
     public void doSomeLookups() {
-        for ( int i = 0; i < 10_000; i++ ) {
-            String key = "u" + (int) (Math.random() * 10000);
+        for ( int i = 0; i < 100_000; i++ ) {
+            String key = "u" + (int) (Math.random() * 100000);
             User user = memory.get(key);
             if ( ! key.equals(user.getUid()) ) {
                 throw new RuntimeException("this is very bad");
@@ -95,15 +95,15 @@ public class OffHeapMapExample {
         ex.measureTime("fill map offheap", () -> ex.fifteenMillion(ex.memory));
 
         for ( int i = 0; i < 20; i++ ) {
-            long dur = ex.measureTime("10_000 accesses", () -> ex.doSomeLookups());
-            System.out.println(10000/dur+" accesses per millisecond");
+            long dur = ex.measureTime("100_000 accesses", () -> ex.doSomeLookups());
+            System.out.println((1000l*100000)/dur+" accesses per second");
         }
         ex.measureGC();
 
         ex.measureTime( "create map ON heap", () -> ex.fifteenMillionOnHeap() );
         for ( int i = 0; i < 20; i++ ) {
-            long dur = ex.measureTime("10_000 accesses", () -> ex.doSomeLookupsOnHeap());
-            System.out.println(10000/dur+" accesses per millisecond");
+            long dur = ex.measureTime("100_000 accesses", () -> ex.doSomeLookupsOnHeap());
+            System.out.println((1000l*100000l)/dur+" accesses per second");
         }
         ex.measureGC();
 
