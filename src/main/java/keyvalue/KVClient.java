@@ -1,14 +1,16 @@
 package keyvalue;
 
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import static keyvalue.OffHeapMapExample.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -22,6 +24,8 @@ public class KVClient {
         Future<KVServer> connect = TCPActorClient.Connect(KVServer.class, "127.0.0.1", 7777)
             .onResult(server -> {
                 try {
+                    // warmup
+                    benchGet(server, true);
 
                     // filter some stuff remotely ...
                     server.iterateValues(new Spore<User, Object>() {
@@ -45,6 +49,17 @@ public class KVClient {
                         }
                     });
 
+                    server.$sync();
+
+                    // compute social graph example
+                    System.out.println("friends level 4 of 'u13':");
+                    ArrayList<User> socialGraph = new ArrayList<User>();
+                    socialGraph( server, Arrays.asList("u13"), 4, socialGraph )
+                        .onResult( signal -> socialGraph.stream().distinct().forEach(System.out::println) );
+
+                    server.$sync();
+
+                    // test throughput
                     while (true) {
                         benchGet(server, true);
                         benchGet(server, false);
@@ -56,8 +71,29 @@ public class KVClient {
             .onError(error -> System.out.println("connection error " + error));
     }
 
+    // inefficient as some users are queried twice (see map()) .. just a base example
+    public static Future socialGraph( KVServer server, List<String> friends, int depth, List<User> result ) {
+        if ( depth > 0 ) {
+            Promise fin = new Promise();
+            Actors.yield( friends.stream().map( friend -> server.$get(friend) ).toArray(Future[]::new))
+                  .onResult(futures -> {
+                      ArrayList<Future> friendQueries = new ArrayList<Future>();
+                      for (int i = 0; i < futures.length; i++) {
+                          User friendUser = (User) futures[i].getResult();
+                          if (!result.contains(friendUser)) {
+                              result.add(friendUser);
+                              friendQueries.add(socialGraph(server, friendUser.getFriends(), depth - 1, result));
+                          }
+                      }
+                      Actors.yield(friendQueries).onResult(signal -> fin.signal());
+                });
+            return fin;
+        }
+        return new Promise<>("done");
+    }
+
     private static void benchGet(KVServer server, boolean existing) throws InterruptedException {
-        final int numMsg = 1_000_000;
+        final int numMsg = 100_000;
         CountDownLatch latch = new CountDownLatch(numMsg);
         long tim = System.currentTimeMillis();
 
@@ -78,7 +114,7 @@ public class KVClient {
             e.printStackTrace();
         }
         long dur = System.currentTimeMillis()-tim;
-        System.out.print("dur 1 million messages (ms)" + dur);
-        System.out.println("- rate get ("+(existing?"existing":"null result")+") per second:"+(numMsg/dur)*1000);
+        System.out.print("dur 100k messages (ms): " + dur);
+        System.out.println(" rate get ("+(existing?"existing":"null result")+") per second:"+(numMsg*1000l/dur));
     }
 }

@@ -177,6 +177,32 @@ public class OffHeapMapExample {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            User user = (User) o;
+
+            if (lastLogin != user.lastLogin) return false;
+            if (firstName != null ? !firstName.equals(user.firstName) : user.firstName != null) return false;
+            if (friends != null ? !friends.equals(user.friends) : user.friends != null) return false;
+            if (name != null ? !name.equals(user.name) : user.name != null) return false;
+            if (!uid.equals(user.uid)) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = uid.hashCode();
+            result = 31 * result + (firstName != null ? firstName.hashCode() : 0);
+            result = 31 * result + (name != null ? name.hashCode() : 0);
+            result = 31 * result + (int) (lastLogin ^ (lastLogin >>> 32));
+            result = 31 * result + (friends != null ? friends.hashCode() : 0);
+            return result;
+        }
+
+        @Override
         public String toString() {
             return "Person{" +
                        "uid='" + uid + '\'' +
