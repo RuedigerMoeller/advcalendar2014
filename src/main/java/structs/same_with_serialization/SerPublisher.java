@@ -27,7 +27,9 @@ public class SerPublisher {
         FCPublisher pub = FastCast.getFastCast().onTransport("default").publish(
                 new PublisherConf(1)            // unique-per-transport topic id
                     .numPacketHistory(33_000)   // how many packets are kept for retransmission requests
-                    .pps(15_000)                // packets per second rate limit.
+                    // NOTE: for slower CPU's/network stacks reduce this to 500 .. 2000
+                    // in case receiver gets dropped
+                    .pps(5_000)                // packets per second rate limit.
         );
 
         PriceUpdate msg = new PriceUpdate();
