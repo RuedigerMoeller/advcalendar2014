@@ -2,12 +2,18 @@ package structs.same_with_serialization;
 
 import org.nustaq.serialization.simpleapi.OnHeapCoder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
  * Created by ruedi on 19.12.14.
  */
 public class SerProtocol {
+
+    public static final boolean SHARED_REFS = true;
+    public static final boolean USEFST = true;
 
     public static class Instrument implements Serializable {
 
@@ -78,12 +84,41 @@ public class SerProtocol {
                        '}';
         }
     }
-
-    public static void do20Millions(byte[] networkBuffer, PriceUpdate msg) {
-        OnHeapCoder coder = new OnHeapCoder(false,Instrument.class,PriceUpdate.class);
+    
+    public static void do20MillionsJDK(byte[] networkBuffer, PriceUpdate msg) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(4000);
         long tim = System.currentTimeMillis();
         int size = 0;
-        for ( int i = 0; i < 20_000_000; i++ ) {
+        int iterations = 20_000_000;
+        for ( int i = 0; i < iterations; i++ ) {
+
+            Instrument instrument = msg.getInstrument();
+            instrument.setMnemonic("BMW");
+            instrument.setInstrumentId(13);
+            msg.setPrc(99.0);
+            msg.setQty(100);
+
+            baos.reset();
+            ObjectOutputStream oos = new ObjectOutputStream(baos); // cannot reuse
+            if ( SHARED_REFS )
+                oos.writeObject(msg);
+            else
+                oos.writeUnshared(msg);
+            oos.close();
+            
+            byte[] bytes = baos.toByteArray(); // must copy + allocate
+            size = bytes.length;
+        }
+        long dur = System.currentTimeMillis() - tim;
+        System.out.println("tim: "+ dur +" "+(iterations/dur)*1000+" per second. size "+size);
+    }
+
+    public static void do20Millions(byte[] networkBuffer, PriceUpdate msg) {
+        OnHeapCoder coder = new OnHeapCoder(SHARED_REFS,Instrument.class,PriceUpdate.class);
+        long tim = System.currentTimeMillis();
+        int size = 0;
+        int iterations = 20_000_000;
+        for ( int i = 0; i < iterations; i++ ) {
 
             Instrument instrument = msg.getInstrument();
             instrument.setMnemonic("BMW");
@@ -93,10 +128,11 @@ public class SerProtocol {
 
             size = coder.toByteArray( msg, networkBuffer, 0, networkBuffer.length );
         }
-        System.out.println("tim: " + (System.currentTimeMillis() - tim)+" "+size);
+        long dur = System.currentTimeMillis() - tim;
+        System.out.println("tim: "+ dur +" "+(iterations/dur)*1000+" per second. size "+size);
     }
 
-    public static void main(String s[]) {
+    public static void main(String s[]) throws IOException {
 
         PriceUpdate template = new PriceUpdate();
         // demonstrates that theoretical send rate is >20 millions messages per second on
@@ -104,7 +140,10 @@ public class SerProtocol {
         byte networkBuffer[] = new byte[4000];
         PriceUpdate msg = new PriceUpdate();
         while ( true ) {
-            do20Millions(networkBuffer, msg);
+            if ( USEFST )
+                do20Millions(networkBuffer, msg);
+            else
+                do20MillionsJDK(networkBuffer,msg);
         }
 
 //        System.out.println(msg);

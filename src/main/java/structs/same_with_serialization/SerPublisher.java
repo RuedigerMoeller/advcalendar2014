@@ -5,7 +5,6 @@ import org.nustaq.fastcast.api.FastCast;
 import org.nustaq.fastcast.config.PhysicalTransportConf;
 import org.nustaq.fastcast.config.PublisherConf;
 import org.nustaq.fastcast.util.RateMeasure;
-import org.nustaq.offheap.structs.FSTStructAllocator;
 import org.nustaq.serialization.simpleapi.OnHeapCoder;
 
 import static structs.same_with_serialization.SerProtocol.*;
@@ -19,9 +18,6 @@ import java.util.concurrent.ThreadLocalRandom;
  * Created by ruedi on 19.12.14.
  */
 public class SerPublisher {
-
-    public static final boolean SHARED_REFS = true;
-    public static final boolean USEFST = false;
 
     public static void main(String arg[]) throws IOException {
 

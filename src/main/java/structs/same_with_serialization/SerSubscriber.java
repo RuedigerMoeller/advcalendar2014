@@ -10,6 +10,8 @@ import org.nustaq.serialization.simpleapi.OnHeapCoder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 
 /**
@@ -24,7 +26,7 @@ public class SerSubscriber {
 
         final RateMeasure rateMeasure = new RateMeasure("receive rate");
         byte[] buffer = new byte[4000];
-        OnHeapCoder coder = new OnHeapCoder(SerPublisher.SHARED_REFS,SerProtocol.Instrument.class,SerProtocol.PriceUpdate.class);
+        OnHeapCoder coder = new OnHeapCoder(SerProtocol.SHARED_REFS,SerProtocol.Instrument.class,SerProtocol.PriceUpdate.class);
 
         ByteArrayInputStream bin = new ByteArrayInputStream(buffer); // for JDK ser test
 
@@ -35,13 +37,13 @@ public class SerSubscriber {
                 @Override
                 public void messageReceived(String sender, long sequence, Bytez b, long off, int len) {
                     b.getArr(off,buffer,0,len);
-                    if ( SerPublisher.USEFST ) {
+                    if ( SerProtocol.USEFST ) {
                         SerProtocol.PriceUpdate msg = (SerProtocol.PriceUpdate) coder.toObject(buffer);
                     } else {
                         try {
                             bin.reset();
                             ObjectInputStream in = new ObjectInputStream(bin);
-                            if ( SerPublisher.SHARED_REFS ) {
+                            if ( SerProtocol.SHARED_REFS ) {
                                 SerProtocol.PriceUpdate msg = (SerProtocol.PriceUpdate) in.readObject();
                             } else {
                                 SerProtocol.PriceUpdate msg = (SerProtocol.PriceUpdate) in.readUnshared();

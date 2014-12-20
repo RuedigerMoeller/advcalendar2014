@@ -7,7 +7,7 @@ import org.nustaq.fastcast.config.SubscriberConf;
 import org.nustaq.fastcast.util.RateMeasure;
 import org.nustaq.offheap.bytez.Bytez;
 import org.nustaq.offheap.structs.unsafeimpl.FSTStructFactory;
-import static org.nustaq.fastcast.examples.structencoding.Protocol.*;
+import static structs.Protocol.*;
 
 /**
  * Created by moelrue on 12/15/14.

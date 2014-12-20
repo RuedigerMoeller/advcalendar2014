@@ -84,7 +84,8 @@ public class Protocol {
 
     public static void do20Millions(byte[] networkBuffer, PriceUpdateStruct msg, int sizeOf) {
         long tim = System.currentTimeMillis();
-        for ( int i = 0; i < 20_000_000; i++ ) {
+        int iterations = 20_000_000;
+        for ( int i = 0; i < iterations; i++ ) {
 
             InstrumentStruct instrument = msg.getInstrument();
             instrument.getMnemonic().setString("BMW");
@@ -95,7 +96,8 @@ public class Protocol {
             // emulate network sending by copying to buffer
             msg.getBase().getArr(msg.getOffset(),networkBuffer,0,sizeOf);
         }
-        System.out.println("tim: "+(System.currentTimeMillis()-tim));
+        long dur = System.currentTimeMillis() - tim;
+        System.out.println("tim: "+ dur +" "+(iterations/dur)*1000+" per second");
     }
 
     public static void initStructFactory() {
